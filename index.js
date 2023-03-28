@@ -6,11 +6,6 @@ require("dotenv").config();
 app.use(cors());
 app.use(express.static("public"));
 
-// parse form data
-app.use(express.urlencoded({ extended: false }));
-// parse json
-app.use(express.json());
-
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/views/index.html");
 });
@@ -18,42 +13,16 @@ app.get("/", (req, res) => {
 /* ***************************
  * project-solution-code *****
  *****************************/
-const mongoose = require("mongoose");
+const connectDb = require("./db/connect");
+const users = require("./routes/users");
 
-// Define Schemas
-const UserSchema = new mongoose.Schema({
-  username: {
-    type: String,
-    required: true,
-  },
-});
+// parse form data
+app.use(express.urlencoded({ extended: false }));
+// parse json
+app.use(express.json());
 
-const ExerciseSchema = new mongoose.Schema({
-  userId: {
-    type: String,
-    required: true,
-  },
-  username: {
-    type: String,
-    required: true,
-  },
-  description: {
-    type: String,
-    required: true,
-  },
-  duration: {
-    type: Number,
-    required: true,
-  },
-  date: {
-    type: Date,
-    required: false,
-  },
-});
-
-// Compile models from schema
-const User = mongoose.model("User", UserSchema);
-const Exercise = mongoose.model("Exercise", ExerciseSchema);
+// routes
+app.use("/api/users", users);
 
 app.post("/api/users", async (req, res) => {
   // add first step: check if user already exists
@@ -141,10 +110,7 @@ const port = process.env.PORT || 3000;
 
 const start = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI2, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    await connectDb(process.env.MONGO_URI2);
     app.listen(port, () => {
       console.log(`Your app is listening on port ${port}...`);
     });
