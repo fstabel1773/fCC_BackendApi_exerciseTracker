@@ -1,45 +1,37 @@
 const User = require("../models/users");
-const Exercise = require("../models/exercises");
+const { getExerciseLog } = require("./exercises");
 
 const createUser = async (req, res) => {
-  // add first step: check if user already exists
-  const newUser = await User.create(req.body);
-  return res.status(201).send(newUser);
-
-  // error-handling?
+  try {
+    const { username } = req.body;
+    const user = await User.findOne({ username: username });
+    if (user) {
+      return res.status(400).json({
+        msg: "Error. Username allready exists. Please choose other name.",
+      });
+    }
+    const newUser = await User.create(req.body);
+    return res.status(201).send(newUser);
+  } catch (error) {
+    res.status(500).json({ msg: error });
+  }
 };
 
 const getUsers = async (req, res) => {
-  // error-handling? -> try/catch?
-  const users = await User.find({});
-  return res.status(200).send(users);
+  try {
+    const users = await User.find({});
+    return res.status(200).send(users);
+  } catch (error) {
+    res.status(500).json({ msg: error });
+  }
 };
 
-const getSingleUser = async (req, res, next) => {
-  const { _id } = req.params;
-  let { from, to, limit } = req.query;
-
-  const logQuery = {
-    userId: _id,
-  };
-
-  if (from && to) {
-    logQuery.date = { $gte: from, $lte: to };
-  } else if (from) {
-    logQuery.date = { $gte: from };
-  } else if (to) {
-    logQuery.date = { $lte: to };
-  }
-
+const getSingleUser = async (req, res) => {
   try {
+    const { _id } = req.params;
+
     const user = await User.findById(_id);
-    const log = (
-      await Exercise.find(logQuery, "-_id description duration date").limit(
-        limit ? limit : ""
-      )
-    ).map((exercise) => {
-      return { ...exercise._doc, date: exercise.date.toDateString() };
-    });
+    const log = await getExerciseLog(req, res);
     const count = log.length;
 
     return res.status(200).send({
@@ -49,7 +41,7 @@ const getSingleUser = async (req, res, next) => {
       log,
     });
   } catch (error) {
-    next(error);
+    res.status(500).json({ msg: error, err: "someting wrong" });
   }
 };
 
